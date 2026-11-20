@@ -30,10 +30,15 @@ app.post('/register', (req, res) => {
     );
 });
 
-//login route
+//login route insecure 
 app.post('/login', (req, res) => {
     const { username, password } = req.body;
-    db.get(`SELECT * FROM users WHERE username = ? AND password = ?`, [username, password], (err, row) => {
+
+    const query = `SELECT * FROM users WHERE username = '${username}' AND password = '${password}'`;
+
+    console.log(query);
+
+    db.get(query, (err, row) => {
         if (row) {
             res.redirect('/dashboard');
         } else {
