@@ -53,6 +53,18 @@ app.post('/maintenance', (req, res) => {
     });
 });
 
+//book room route
+app.post('/book', (req, res) => {
+    const { roomId } = req.body;
+
+    db.run(`INSERT INTO bookings (userId, roomId, startDate) VALUES (?, ?, ?)`, [1, roomId, new Date().toISOString()], (err) => {
+        if (err) {
+            return res.send('Error occurred while booking the room.');
+        }
+        res.send('Room booked successfully.');
+    });
+});
+
 app.listen(3000, () => {
     console.log('Server is running on port 3000');
 });
@@ -75,7 +87,18 @@ app.get('/rooms', (req, res) => {
         }
         let html = '<h1>Available Rooms</h1><ul>';
         rows.forEach((room) => {
-            html += `<h3>${room.roomName}</h3><p>Price: €${room.price}</p><p>Status: ${room.status}</p><p>${room.description}</p><hr>`;
+            html += `
+            <h3>${room.roomName}</h3>
+            <p>Price: €${room.price}</p>
+            <p>Status: ${room.status}</p>
+            <p>${room.description}</p>
+            
+            <form action="/book" method="POST">
+            <input type="hidden" name="roomId" value="${room.roomsId}">
+            <button type="submit">Book Now</button>
+            </form>
+            <hr>
+            `;
         });
         html += '</ul>';
         res.send(html);
