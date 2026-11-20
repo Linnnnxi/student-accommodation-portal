@@ -11,13 +11,80 @@ const db = new sqlite3.Database('./database.db', (err) => {
 const express = require('express');
 const path = require('path');
 const app = express();
+app.use(express.urlencoded({ extended: true }));
 
 app.use(express.static('pages'));
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'pages', 'login.html'));
 });
+
+//register route
+app.post('/register', (req, res) => {
+    const { username, password, email } = req.body;
+    db.run(`INSERT INTO users (username, email, password) VALUES (?, ?, ?)`, [username, email, password], (err) => {
+        if (err) {
+            return res.send('Error occurred while registering user.');
+        }
+        res.send('User registered successfully.');
+    }
+    );
+});
+
+//login route
+app.post('/login', (req, res) => {
+    const { username, password } = req.body;
+    db.get(`SELECT * FROM users WHERE username = ? AND password = ?`, [username, password], (err, row) => {
+        if (row) {
+            res.redirect('/dashboard');
+        } else {
+            res.send('Invalid username or password.');
+        }
+    });
+});
+
+//maintenance route
+app.post('/maintenance', (req, res) => {
+    const { message } = req.body;
+    db.run(`INSERT INTO maintenance (userId, message, createdAt) VALUES (?, ?, ?)`, [1, message, new Date().toISOString()], (err) => {
+        if (err) {
+            return res.send('Error occurred while submitting maintenance request.');
+        }
+        res.send('Maintenance request submitted successfully.');
+    });
+});
+
 app.listen(3000, () => {
     console.log('Server is running on port 3000');
+});
+
+//register
+app.get('/register', (req, res) => {
+    res.sendFile(path.join(__dirname, 'pages', 'register.html'));
+});
+
+//dashboard
+app.get('/dashboard', (req, res) => {
+    res.sendFile(path.join(__dirname, 'pages', 'dashboard.html'));
+});
+
+//rooms
+app.get('/rooms', (req, res) => {
+    db.all(`SELECT * FROM rooms`, [], (err, rows) => {
+        if (err) {
+            return res.send('Error loading rooms.');
+        }
+        let html = '<h1>Available Rooms</h1><ul>';
+        rows.forEach((room) => {
+            html += `<h3>${room.roomName}</h3><p>Price: €${room.price}</p><p>Status: ${room.status}</p><p>${room.description}</p><hr>`;
+        });
+        html += '</ul>';
+        res.send(html);
+    });
+});
+
+//maintenance
+app.get('/maintenance', (req, res) => {
+    res.sendFile(path.join(__dirname, 'pages', 'maintenance.html'));
 });
 
 //Users table
@@ -36,7 +103,16 @@ db.run(`CREATE TABLE IF NOT EXISTS rooms (
     status TEXT NOT NULL,
     description TEXT NOT NULL
 )
-`);
+`, (err) => {
+    if (!err) {
+        //rooms data
+        db.run(`INSERT INTO rooms (roomName, price, status, description) VALUES 
+        ('Room 1', 800, 'available', 'A single room with a beautiful view.'),
+        ('Room 2', 1200, 'available', 'A double room with a balcony.')
+        `);
+    }
+});
+
 //Bookings table
 db.run(`CREATE TABLE IF NOT EXISTS bookings (
     bookingId INTEGER PRIMARY KEY AUTOINCREMENT,
