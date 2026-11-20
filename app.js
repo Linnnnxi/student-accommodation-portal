@@ -7,6 +7,19 @@ const db = new sqlite3.Database('./database.db', (err) => {
         console.log('Connected to the database.');
     }
 });
+//express
+const express = require('express');
+const path = require('path');
+const app = express();
+
+app.use(express.static('pages'));
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'pages', 'login.html'));
+});
+app.listen(3000, () => {
+    console.log('Server is running on port 3000');
+});
+
 //Users table
 db.run(`CREATE TABLE IF NOT EXISTS users (
     userId INTEGER PRIMARY KEY AUTOINCREMENT,
