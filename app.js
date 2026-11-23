@@ -114,6 +114,23 @@ app.get('/rooms', (req, res) => {
 app.get('/maintenance', (req, res) => {
     res.sendFile(path.join(__dirname, 'pages', 'maintenance.html'));
 });
+//stored XSS vulnerability in maintenance requests
+app.get('/requests', (req, res) => {
+    db.all(`SELECT * FROM maintenance`, [], (err, rows) => {
+        let html = '<h1>Maintenance Requests</h1><ul>';
+        rows.forEach((request) => {
+            html += `<p>${request.message}</p>`;//vulnerable to XSS
+        });
+        res.send(html);
+    });
+});
+
+//users
+app.get('/users', (req, res) => {
+    db.all(`SELECT * FROM users`, [], (err, rows) => {
+        res.send(JSON.stringify(rows));
+    });
+});
 
 //Users table
 db.run(`CREATE TABLE IF NOT EXISTS users (
