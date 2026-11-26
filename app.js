@@ -1,3 +1,13 @@
+//secure password handling
+const bcrypt = require('bcrypt');
+//sanitize-html for XSS protection
+const sanitizeHtml = require('sanitize-html');
+//session management
+const session = require('express-session');
+//helmet for security headers
+const helmet = require('helmet');
+//winston for logging
+const winston = require('winston');
 //database setup
 const sqlite3 = require('sqlite3').verbose();
 const db = new sqlite3.Database('./database.db', (err) => {
@@ -10,18 +20,34 @@ const db = new sqlite3.Database('./database.db', (err) => {
 //express
 const express = require('express');
 const path = require('path');
+const sanitize = require('sanitize-html');
 const app = express();
+//winston logger setup
+const logger = winston.createLogger({
+    transports: [
+        new winston.transports.Console(),
+    ]
+});
+//session setup
+app.use(session({
+    secret: 'your-secret-key',
+    resave: false,
+    saveUninitialized: false
+}));
+
 app.use(express.urlencoded({ extended: true }));
 
 app.use(express.static('pages'));
+app.use(helmet());
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'pages', 'login.html'));
 });
 
-//register route
-app.post('/register', (req, res) => {
+//register route secure
+app.post('/register', async (req, res) => {
     const { username, password, email } = req.body;
-    db.run(`INSERT INTO users (username, email, password) VALUES (?, ?, ?)`, [username, email, password], (err) => {
+    const hashedPassword = await bcrypt.hash(password, 10);
+    db.run(`INSERT INTO users (username, email, password) VALUES (?, ?, ?)`, [username, email, hashedPassword], (err) => {
         if (err) {
             return res.send('Error occurred while registering user.');
         }
@@ -30,18 +56,21 @@ app.post('/register', (req, res) => {
     );
 });
 
-//login route insecure 
+//login route secure
 app.post('/login', (req, res) => {
     const { username, password } = req.body;
 
-    const query = `SELECT * FROM users WHERE username = '${username}' AND password = '${password}'`;
-
-    console.log(query);
-
-    db.get(query, (err, row) => {
-        if (row) {
+    db.get(`SELECT * FROM users WHERE username = ?`, [username], async (err, user) => {
+        if (!user) {
+            res.res.send('Invalid username or password.');
+        }
+        const match = await bcrypt.compare(password, user.password);
+        if (match) {
+            req.session.userId = user.userId;
+            logger.info('User logged in successfully.');
             res.redirect('/dashboard');
         } else {
+            logger.warn('Login Failed');
             res.send('Invalid username or password.');
         }
     });
@@ -114,23 +143,19 @@ app.get('/rooms', (req, res) => {
 app.get('/maintenance', (req, res) => {
     res.sendFile(path.join(__dirname, 'pages', 'maintenance.html'));
 });
-//stored XSS vulnerability in maintenance requests
+//secure maintenance requests page
 app.get('/requests', (req, res) => {
     db.all(`SELECT * FROM maintenance`, [], (err, rows) => {
         let html = '<h1>Maintenance Requests</h1><ul>';
         rows.forEach((request) => {
-            html += `<p>${request.message}</p>`;//vulnerable to XSS
+            const cleanMessage = sanitize(request.message);
+            html += `<p>${cleanMessage}</p><hr>`;
         });
         res.send(html);
     });
 });
 
-//users
-app.get('/users', (req, res) => {
-    db.all(`SELECT * FROM users`, [], (err, rows) => {
-        res.send(JSON.stringify(rows));
-    });
-});
+
 
 //Users table
 db.run(`CREATE TABLE IF NOT EXISTS users (
