@@ -62,7 +62,7 @@ app.post('/login', (req, res) => {
 
     db.get(`SELECT * FROM users WHERE username = ?`, [username], async (err, user) => {
         if (!user) {
-            res.res.send('Invalid username or password.');
+            return res.send('Invalid username or password.');
         }
         const match = await bcrypt.compare(password, user.password);
         if (match) {
