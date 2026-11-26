@@ -33,7 +33,7 @@ app.post('/register', (req, res) => {
 //login route insecure 
 app.post('/login', (req, res) => {
     const { username, password } = req.body;
-
+    //SQL Injection vulnerability
     const query = `SELECT * FROM users WHERE username = '${username}' AND password = '${password}'`;
 
     console.log(query);
@@ -114,12 +114,12 @@ app.get('/rooms', (req, res) => {
 app.get('/maintenance', (req, res) => {
     res.sendFile(path.join(__dirname, 'pages', 'maintenance.html'));
 });
-//stored XSS vulnerability in maintenance requests
+//Stored XSS vulnerability in maintenance requests
 app.get('/requests', (req, res) => {
     db.all(`SELECT * FROM maintenance`, [], (err, rows) => {
         let html = '<h1>Maintenance Requests</h1><ul>';
         rows.forEach((request) => {
-            html += `<p>${request.message}</p>`;//vulnerable to XSS
+            html += `<p>${request.message}</p>`;
         });
         res.send(html);
     });
@@ -130,6 +130,17 @@ app.get('/users', (req, res) => {
     db.all(`SELECT * FROM users`, [], (err, rows) => {
         res.send(JSON.stringify(rows));
     });
+});
+
+//Dom XSS
+app.get('/domxss', (req, res) => {
+    res.sendFile(path.join(__dirname, 'pages', 'domxss.html'));
+});
+
+//Reflected XSS
+app.get('/search', (req, res) => {
+    const query = req.query.q;
+    res.send(`<h1>Search Results for: ${query}</h1>`);
 });
 
 //Users table

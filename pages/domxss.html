@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html>
+
+<body>
+    <h1>DOM-based XSS Test</h1>
+    <input id="userInput">
+    <button onclick="showInput()">Submit</button>
+    <div id="output"></div>
+    <script>
+        function showInput() {
+            // This is a vulnerable code that directly inserts user input into the DOM without sanitization
+            document.getElementById('output').innerHTML = document.getElementById('userInput').value;
+        }
+    </script>
+</body>
+
+</html>
