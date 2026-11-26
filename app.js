@@ -99,6 +99,13 @@ app.post('/book', (req, res) => {
     });
 });
 
+//fix the reflected XSS route
+app.get('/search', (req, res) => {
+    const query = sanitizeHtml(req.query.q || '');
+    res.send(`<h1>Search Results</h1>
+        You searched for: ${query}`);
+});
+
 app.listen(3000, () => {
     console.log('Server is running on port 3000');
 });
