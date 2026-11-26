@@ -10,6 +10,10 @@ const helmet = require('helmet');
 const winston = require('winston');
 //database setup
 const sqlite3 = require('sqlite3').verbose();
+//express
+const express = require('express');
+const path = require('path');
+const app = express();
 const db = new sqlite3.Database('./database.db', (err) => {
     if (err) {
         console.error(err.message);
@@ -17,11 +21,7 @@ const db = new sqlite3.Database('./database.db', (err) => {
         console.log('Connected to the database.');
     }
 });
-//express
-const express = require('express');
-const path = require('path');
-const sanitize = require('sanitize-html');
-const app = express();
+
 //winston logger setup
 const logger = winston.createLogger({
     transports: [
@@ -66,7 +66,7 @@ app.post('/login', (req, res) => {
         }
         const match = await bcrypt.compare(password, user.password);
         if (match) {
-            req.session.userId = user.userId;
+            req.session.userId = user.userId; //session management
             logger.info('User logged in successfully.');
             res.redirect('/dashboard');
         } else {
@@ -155,14 +155,17 @@ app.get('/requests', (req, res) => {
     db.all(`SELECT * FROM maintenance`, [], (err, rows) => {
         let html = '<h1>Maintenance Requests</h1><ul>';
         rows.forEach((request) => {
-            const cleanMessage = sanitize(request.message);
+            const cleanMessage = sanitizeHtml(request.message);
             html += `<p>${cleanMessage}</p><hr>`;
         });
         res.send(html);
     });
 });
 
-
+//dom XSS
+app.get('/domxss', (req, res) => {
+    res.sendFile(path.join(__dirname, 'pages', 'domxss.html'));
+});
 
 //Users table
 db.run(`CREATE TABLE IF NOT EXISTS users (

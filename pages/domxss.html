@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html>
+
+<body>
+    <h1>DOM-based XSS Test</h1>
+    <input id="userInput">
+    <button onclick="showInput()">Submit</button>
+    <div id="output"></div>
+    <script>
+        function showInput() {
+            //sloved the DOM-based XSS vulnerability by using textContent instead of innerHTML
+            document.getElementById('output').textContent = document.getElementById('userInput').value;
+        }
+    </script>
+</body>
+
+</html>
